@@ -116,15 +116,34 @@ function remove_wifi() {
 function set_kernel_size() {
   #修改jdc ax1800 pro 的内核大小为12M
   image_file='./target/linux/qualcommax/image/ipq60xx.mk'
+  
+  # 修改 emmc-common
   sed -i "/^define Device\/emmc-common/,/^endef/ s/KERNEL_SIZE := 6144k/KERNEL_SIZE := 12288k/" $image_file
+  
+  # 修改 nand-common (添加 KERNEL_SIZE)
   sed -i "/^define Device\/nand-common/,/^endef/ s/^endef/\tKERNEL_SIZE := 8192k\nendef/" $image_file
+  
+  # 修改京东云设备
   sed -i "/^define Device\/jdcloud_re-ss-01/,/^endef/ { /KERNEL_SIZE := 6144k/s//KERNEL_SIZE := 12288k/ }" $image_file
   sed -i "/^define Device\/jdcloud_re-cs-02/,/^endef/ { /KERNEL_SIZE := 6144k/s//KERNEL_SIZE := 12288k/ }" $image_file
   sed -i "/^define Device\/jdcloud_re-cs-07/,/^endef/ { /KERNEL_SIZE := 6144k/s//KERNEL_SIZE := 12288k/ }" $image_file
-  sed -i "/^define Device\/link_nn6000-v2/,/^endef/ { /KERNEL_SIZE := 6144k/s//KERNEL_SIZE := 12288k/ }" $image_file
-#  sed -i "/^define Device\/redmi_ax5-jdcloud/,/^endef/ s/^endef/  KERNEL_SIZE := 12288k\nendef/" $image_file
+  
+  # 修改 link_nn6000-v2 - 改进版本
+  # 先检查是否存在 KERNEL_SIZE 定义
+  if grep -A 10 "^define Device\/link_nn6000-v2" $image_file | grep -q "KERNEL_SIZE"; then
+    # 如果存在，替换为 12288k
+    sed -i "/^define Device\/link_nn6000-v2/,/^endef/ { s/KERNEL_SIZE := [0-9]\+k/KERNEL_SIZE := 12288k/ }" $image_file
+  else
+    # 如果不存在，添加 KERNEL_SIZE
+    sed -i "/^define Device\/link_nn6000-v2/,/^endef/ s/^endef/\tKERNEL_SIZE := 12288k\nendef/" $image_file
+  fi
+  
+  # 修改 linksys_mr 设备
   sed -i "/^define Device\/linksys_mr/,/^endef/ { /KERNEL_SIZE := 8192k/s//KERNEL_SIZE := 12288k/ }" $image_file
-  cat $image_file
+  
+  # 显示修改后的配置用于调试
+  echo "=== Modified kernel sizes ==="
+  grep -A 2 "KERNEL_SIZE" $image_file | grep -E "(define Device|KERNEL_SIZE)"
 }
 #开启内存回收补丁
 function enable_skb_recycler() {
